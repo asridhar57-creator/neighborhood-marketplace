@@ -1,0 +1,24 @@
+# Neighborhood Marketplace PWA — System Architecture & Strict Rules
+
+## 1. Technical Framework Stack
+- Next.js 15 (App Router, Server Actions, React Server Components).
+- TypeScript (Strict Mode enabled, zero `any` types).
+- Supabase (PostgreSQL with PostGIS for spatial queries, pg_trgm for fuzzy search, RLS policies).
+- Tailwind CSS (Mobile-first, clean aesthetics, subtle stone-based neutral palette).
+- Lucide React (Icon library).
+- Zustand (Client-side state with `persist` for cart management).
+
+## 2. Next.js 15 Critical Breaking Changes (STRICT COMPLIANCE)
+- Asynchronous Route Params: Dynamic route parameters must be awaited:
+  `const { slug } = await params;` or `const { id } = await params;`
+- Asynchronous Headers & Cookies: Cookie and header operations must be awaited:
+  `const cookieStore = await cookies();`
+  `const headerList = await headers();`
+
+## 3. Core Business & Architecture Rules
+- Zero Digital Payments: No Razorpay, Stripe, or payment gateways. All monetary transactions settle offline at the physical counter or customer doorstep via cash/direct UPI.
+- Entity Separation: A single `stores` table handles both retail shops and service technicians via a `business_type` column (`'retail'` vs `'service'`).
+- Cart Restrictions: The shopping cart holds items from ONE store at a time. Service professionals DO NOT have an "Add to Bag" button; their profiles trigger direct Phone Call / WhatsApp actions.
+- Catalog Cap: Retail stores can list a maximum of 15 active curated products, enforced by a database trigger.
+- Verification Handshake: Orders are completed offline via a 4-digit PIN verification handshake with an atomic 3-strike lockout guard.
+- Spatial Integrity: PostGIS functions use `(longitude, latitude)` point ordering: `ST_MakePoint(lng, lat)`.
