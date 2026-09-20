@@ -22,17 +22,19 @@ export function RememberActiveOrder({
     if (!verification_pin) {
       return;
     }
-    void Promise.resolve(useActiveOrder.persist.rehydrate()).then(() => {
-      saveOrder({
-        order_id,
-        verification_pin,
-        store_name,
-        total_amount,
-        status,
-        whatsapp_number,
-        fulfillment_type,
+    void Promise.resolve(useActiveOrder.persist.rehydrate())
+      .catch(() => undefined)
+      .finally(() => {
+        saveOrder({
+          order_id,
+          verification_pin,
+          store_name,
+          total_amount,
+          status,
+          whatsapp_number,
+          fulfillment_type,
+        });
       });
-    });
   }, [
     order_id,
     verification_pin,

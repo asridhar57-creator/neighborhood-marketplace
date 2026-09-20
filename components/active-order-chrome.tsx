@@ -26,18 +26,24 @@ function isBuyerPath(pathname: string): boolean {
 export function ActiveOrderChrome() {
   const pathname = usePathname();
   const order = useActiveOrder((state) => state.order);
-  const hydrated = useActiveOrder((state) => state.hydrated);
-  const markHydrated = useActiveOrder((state) => state.markHydrated);
-  const clearOrder = useActiveOrder((state) => state.clearOrder);
+  const [mounted, setMounted] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
-    void Promise.resolve(useActiveOrder.persist.rehydrate()).then(() => {
-      markHydrated();
-    });
-  }, [markHydrated]);
+    let cancelled = false;
+    void Promise.resolve(useActiveOrder.persist.rehydrate())
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) {
+          setMounted(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (!hydrated || !order || !isBuyerPath(pathname)) {
+  if (!mounted || !order || !isBuyerPath(pathname)) {
     return null;
   }
 
@@ -49,7 +55,7 @@ export function ActiveOrderChrome() {
   return (
     <>
       <div className="h-16" aria-hidden />
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-4">
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
@@ -79,7 +85,7 @@ export function ActiveOrderChrome() {
             order={order}
             readyLabel={readyLabel}
             onDismiss={() => {
-              clearOrder();
+              useActiveOrder.getState().clearOrder();
               setSheetOpen(false);
             }}
           />
