@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import {
   useActiveOrder,
+  writeActiveOrderToStorage,
   type ActiveOrderSnapshot,
 } from "@/lib/store/use-active-order";
 
@@ -22,19 +23,17 @@ export function RememberActiveOrder({
     if (!verification_pin) {
       return;
     }
-    void Promise.resolve(useActiveOrder.persist.rehydrate())
-      .catch(() => undefined)
-      .finally(() => {
-        saveOrder({
-          order_id,
-          verification_pin,
-          store_name,
-          total_amount,
-          status,
-          whatsapp_number,
-          fulfillment_type,
-        });
-      });
+    const snapshot: ActiveOrderSnapshot = {
+      order_id,
+      verification_pin,
+      store_name,
+      total_amount,
+      status,
+      whatsapp_number,
+      fulfillment_type,
+    };
+    saveOrder(snapshot);
+    writeActiveOrderToStorage(snapshot);
   }, [
     order_id,
     verification_pin,

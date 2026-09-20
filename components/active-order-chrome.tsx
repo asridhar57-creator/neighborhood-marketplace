@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/sheet";
 import { formatInr, formatWhatsAppLink } from "@/lib/format";
 import {
+  readActiveOrderFromStorage,
   useActiveOrder,
+  writeActiveOrderToStorage,
   type ActiveOrderSnapshot,
 } from "@/lib/store/use-active-order";
 
@@ -26,22 +28,24 @@ function isBuyerPath(pathname: string): boolean {
 export function ActiveOrderChrome() {
   const pathname = usePathname();
   const order = useActiveOrder((state) => state.order);
+  const saveOrder = useActiveOrder((state) => state.saveOrder);
   const [mounted, setMounted] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    void Promise.resolve(useActiveOrder.persist.rehydrate())
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) {
-          setMounted(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const stored = readActiveOrderFromStorage();
+    if (stored && !useActiveOrder.getState().order) {
+      saveOrder(stored);
+    }
+    setMounted(true);
+  }, [saveOrder]);
+
+  useEffect(() => {
+    if (!mounted || !order) {
+      return;
+    }
+    writeActiveOrderToStorage(order);
+  }, [mounted, order]);
 
   if (!mounted || !order || !isBuyerPath(pathname)) {
     return null;
@@ -86,6 +90,7 @@ export function ActiveOrderChrome() {
             readyLabel={readyLabel}
             onDismiss={() => {
               useActiveOrder.getState().clearOrder();
+              writeActiveOrderToStorage(null);
               setSheetOpen(false);
             }}
           />
