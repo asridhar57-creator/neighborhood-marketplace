@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -57,7 +56,7 @@ export function ActiveOrderChrome() {
       ? "Doorstep Delivery"
       : "Ready for Pickup";
 
-  const node = (
+  return (
     <>
       <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-4">
         <button
@@ -98,8 +97,6 @@ export function ActiveOrderChrome() {
       </Sheet>
     </>
   );
-
-  return createPortal(node, document.body);
 }
 
 function ActiveOrderSheetBody({

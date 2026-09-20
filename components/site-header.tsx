@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ShoppingBag, Store } from "lucide-react";
 
-import { ActiveOrderChrome } from "@/components/active-order-chrome";
 import { Button } from "@/components/ui/button";
 import { useHasHydrated } from "@/hooks/use-has-hydrated";
 import { selectBagCount, useCart } from "@/lib/store/use-cart";
@@ -63,7 +62,6 @@ export function SiteHeader({ neighborhood }: { neighborhood: string }) {
         </Button>
         </div>
       </div>
-      <ActiveOrderChrome />
     </header>
   );
 }
