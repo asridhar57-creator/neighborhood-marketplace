@@ -58,11 +58,11 @@ export function ActiveOrderChrome() {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-4">
+      <div className="border-t border-stone-800 bg-stone-900 px-4 py-2.5">
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="pointer-events-auto mx-auto flex w-full max-w-3xl items-center gap-3 rounded-full bg-stone-900 px-4 py-3 text-left text-stone-50 shadow-lg"
+          className="mx-auto flex w-full max-w-3xl items-center gap-3 text-left text-stone-50"
         >
           <span className="relative flex size-2.5 shrink-0">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
