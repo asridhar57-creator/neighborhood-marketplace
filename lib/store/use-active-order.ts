@@ -52,20 +52,16 @@ export function parseActiveOrderSnapshot(value: unknown): ActiveOrderSnapshot | 
       : typeof orderRaw.total_amount === "string"
         ? Number(orderRaw.total_amount)
         : NaN;
-  const status = orderRaw.status;
-  const fulfillment = orderRaw.fulfillment_type;
-  if (
-    !order_id ||
-    !verification_pin ||
-    !store_name ||
-    !Number.isFinite(total_amount) ||
-    (status !== "placed" &&
-      status !== "accepted" &&
-      status !== "ready" &&
-      status !== "completed" &&
-      status !== "cancelled") ||
-    (fulfillment !== "pickup" && fulfillment !== "self_delivery")
-  ) {
+  const status =
+    orderRaw.status === "accepted" ||
+    orderRaw.status === "ready" ||
+    orderRaw.status === "completed" ||
+    orderRaw.status === "cancelled"
+      ? orderRaw.status
+      : "placed";
+  const fulfillment =
+    orderRaw.fulfillment_type === "self_delivery" ? "self_delivery" : "pickup";
+  if (!order_id || !verification_pin || !store_name || !Number.isFinite(total_amount)) {
     return null;
   }
   return {
