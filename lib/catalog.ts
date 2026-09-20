@@ -1,6 +1,6 @@
 import { distanceMeters } from "@/lib/geo";
 import { MOCK_PRODUCTS, MOCK_STORES } from "@/lib/mock-data";
-import { isUsingMockCatalog } from "@/lib/supabase";
+import { isUsingMockCatalog } from "@/lib/supabase/env";
 import type { BusinessType, NeighborhoodListing, Product, Store } from "@/lib/types";
 
 function fuzzyIncludes(haystack: string, needle: string): boolean {

@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { CartItem, FulfillmentType, PlacedOrder } from "@/lib/types";
+import type { CartItem, PendingCartItem } from "@/lib/types";
 
 type AddResult =
   | { status: "added" }
@@ -13,33 +13,31 @@ type CartState = {
   storeId: string | null;
   storeName: string | null;
   items: CartItem[];
-  lastOrder: PlacedOrder | null;
-  addItem: (item: Omit<CartItem, "quantity"> & { storeName: string }) => AddResult;
-  replaceStoreAndAdd: (
-    item: Omit<CartItem, "quantity"> & { storeName: string },
-  ) => void;
+  pendingReplace: PendingCartItem | null;
+  conflictStoreName: string | null;
+  addItem: (item: PendingCartItem) => AddResult;
+  replaceStoreAndAdd: (item: PendingCartItem) => void;
+  confirmReplaceCart: () => void;
+  cancelReplaceCart: () => void;
   setQuantity: (productId: string, quantity: number) => void;
   clearBag: () => void;
-  placeOrder: (input: {
-    fulfillmentType: FulfillmentType;
-    deliveryAddress: string | null;
-  }) => PlacedOrder | null;
 };
 
-function fourDigitPin(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
-
-export const useCartStore = create<CartState>()(
+export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       storeId: null,
       storeName: null,
       items: [],
-      lastOrder: null,
+      pendingReplace: null,
+      conflictStoreName: null,
       addItem: (item) => {
         const { storeId, items, storeName } = get();
         if (storeId && storeId !== item.storeId) {
+          set({
+            pendingReplace: item,
+            conflictStoreName: storeName ?? "another shop",
+          });
           return {
             status: "other-store",
             currentStoreName: storeName ?? "another shop",
@@ -57,6 +55,8 @@ export const useCartStore = create<CartState>()(
           storeId: item.storeId,
           storeName: item.storeName,
           items: nextItems,
+          pendingReplace: null,
+          conflictStoreName: null,
         });
         return { status: "added" };
       },
@@ -65,12 +65,34 @@ export const useCartStore = create<CartState>()(
           storeId: item.storeId,
           storeName: item.storeName,
           items: [{ ...item, quantity: 1 }],
+          pendingReplace: null,
+          conflictStoreName: null,
         });
+      },
+      confirmReplaceCart: () => {
+        const pending = get().pendingReplace;
+        if (!pending) {
+          return;
+        }
+        set({
+          storeId: pending.storeId,
+          storeName: pending.storeName,
+          items: [{ ...pending, quantity: 1 }],
+          pendingReplace: null,
+          conflictStoreName: null,
+        });
+      },
+      cancelReplaceCart: () => {
+        set({ pendingReplace: null, conflictStoreName: null });
       },
       setQuantity: (productId, quantity) => {
         if (quantity <= 0) {
           const items = get().items.filter((row) => row.productId !== productId);
-          set(items.length === 0 ? { items, storeId: null, storeName: null } : { items });
+          set(
+            items.length === 0
+              ? { items, storeId: null, storeName: null }
+              : { items },
+          );
           return;
         }
         set({
@@ -79,32 +101,23 @@ export const useCartStore = create<CartState>()(
           ),
         });
       },
-      clearBag: () => set({ storeId: null, storeName: null, items: [] }),
-      placeOrder: ({ fulfillmentType, deliveryAddress }) => {
-        const { items, storeId, storeName } = get();
-        if (!storeId || !storeName || items.length === 0) {
-          return null;
-        }
-        const order: PlacedOrder = {
-          id: crypto.randomUUID(),
-          storeId,
-          storeName,
-          totalAmount: items.reduce(
-            (sum, row) => sum + row.unitPrice * row.quantity,
-            0,
-          ),
-          fulfillmentType,
-          deliveryAddress,
-          verificationPin: fourDigitPin(),
-          status: "placed",
-          items,
-          createdAt: new Date().toISOString(),
-        };
-        set({ storeId: null, storeName: null, items: [], lastOrder: order });
-        return order;
-      },
+      clearBag: () =>
+        set({
+          storeId: null,
+          storeName: null,
+          items: [],
+          pendingReplace: null,
+          conflictStoreName: null,
+        }),
     }),
-    { name: "neighborhood-bag" },
+    {
+      name: "neighborhood-bag",
+      partialize: (state) => ({
+        storeId: state.storeId,
+        storeName: state.storeName,
+        items: state.items,
+      }),
+    },
   ),
 );
 

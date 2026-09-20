@@ -1,63 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 
+import { placeOrder } from "@/app/actions/orders";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatInr } from "@/lib/format";
+import { selectBagTotal, useCart } from "@/lib/store/use-cart";
 import type { FulfillmentType, Store } from "@/lib/types";
-import {
-  selectBagTotal,
-  useCartStore,
-} from "@/stores/cart-store";
 
 export function BagCheckout({ store }: { store: Store | null }) {
-  const items = useCartStore((state) => state.items);
-  const storeName = useCartStore((state) => state.storeName);
-  const lastOrder = useCartStore((state) => state.lastOrder);
-  const setQuantity = useCartStore((state) => state.setQuantity);
-  const clearBag = useCartStore((state) => state.clearBag);
-  const placeOrder = useCartStore((state) => state.placeOrder);
+  const router = useRouter();
+  const items = useCart((state) => state.items);
+  const storeId = useCart((state) => state.storeId);
+  const storeName = useCart((state) => state.storeName);
+  const setQuantity = useCart((state) => state.setQuantity);
+  const clearBag = useCart((state) => state.clearBag);
   const [fulfillment, setFulfillment] = useState<FulfillmentType>("pickup");
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   const total = useMemo(() => selectBagTotal(items), [items]);
-
-  if (items.length === 0 && lastOrder) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Alert>
-          <AlertTitle>Show this PIN at {lastOrder.storeName}</AlertTitle>
-          <AlertDescription>
-            Order placed. Pay cash or UPI at the{" "}
-            {lastOrder.fulfillmentType === "pickup" ? "counter" : "doorstep"}.
-            No card or app payment.
-          </AlertDescription>
-        </Alert>
-        <div className="rounded-xl bg-stone-900 px-4 py-8 text-center text-stone-50">
-          <p className="text-sm tracking-[0.3em] text-stone-400 uppercase">
-            Verification PIN
-          </p>
-          <p className="mt-2 font-mono text-5xl font-semibold tracking-[0.35em]">
-            {lastOrder.verificationPin}
-          </p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Total {formatInr(lastOrder.totalAmount)} ·{" "}
-          {lastOrder.items.length} line
-          {lastOrder.items.length === 1 ? "" : "s"}
-        </p>
-        <Button nativeButton={false} render={<Link href="/" />} size="lg" className="h-11">
-          Back to the neighborhood
-        </Button>
-      </div>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -184,22 +153,36 @@ export function BagCheckout({ store }: { store: Store | null }) {
       <Button
         size="lg"
         className="h-12"
+        disabled={pending || !storeId}
         onClick={() => {
+          if (!storeId) {
+            return;
+          }
           if (fulfillment === "self_delivery" && address.trim().length < 6) {
             setError("Add a doorstep address so they can find you.");
             return;
           }
-          const order = placeOrder({
-            fulfillmentType: fulfillment,
-            deliveryAddress:
-              fulfillment === "self_delivery" ? address.trim() : null,
+          setError(null);
+          startTransition(() => {
+            void (async () => {
+              const result = await placeOrder({
+                storeId,
+                fulfillmentType: fulfillment,
+                deliveryAddress:
+                  fulfillment === "self_delivery" ? address.trim() : null,
+                items,
+              });
+              if (!result.ok) {
+                setError(result.error);
+                return;
+              }
+              clearBag();
+              router.push(`/orders/${result.data.orderId}`);
+            })();
           });
-          if (!order) {
-            setError("Could not place the order. Try again.");
-          }
         }}
       >
-        Place order · get PIN
+        {pending ? "Placing order…" : "Place order · get PIN"}
       </Button>
     </div>
   );

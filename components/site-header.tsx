@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useHasHydrated } from "@/hooks/use-has-hydrated";
-import { selectBagCount, useCartStore } from "@/stores/cart-store";
+import { selectBagCount, useCart } from "@/lib/store/use-cart";
 
 export function SiteHeader({ neighborhood }: { neighborhood: string }) {
   const hydrated = useHasHydrated();
-  const items = useCartStore((state) => state.items);
+  const items = useCart((state) => state.items);
   const count = hydrated ? selectBagCount(items) : 0;
 
   return (
@@ -23,6 +23,17 @@ export function SiteHeader({ neighborhood }: { neighborhood: string }) {
             {neighborhood}
           </p>
         </Link>
+        <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="lg"
+          nativeButton={false}
+          render={<Link href="/merchant/dashboard" />}
+          className="h-10 px-2"
+        >
+          <Store className="size-4" />
+          <span className="hidden sm:inline">Counter</span>
+        </Button>
         <Button
           variant="outline"
           size="lg"
@@ -38,6 +49,7 @@ export function SiteHeader({ neighborhood }: { neighborhood: string }) {
             </span>
           ) : null}
         </Button>
+        </div>
       </div>
     </header>
   );

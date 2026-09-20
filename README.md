@@ -18,7 +18,9 @@ No Supabase keys are required. Catalog, cart, and the 4-digit pickup PIN all run
 - Neighborhood home with **Shops** vs **Services**
 - Store and service profiles
 - Add to bag on retail only, one store at a time (Zustand `persist`)
-- Place order → offline verification PIN (no Razorpay/Stripe)
+- Place order (`app/actions/orders.ts`) → 4-digit handover PIN at `/orders/[id]`
+- Merchant counter at `/merchant/dashboard` verifies PIN (IP rate-limit + 3-strike lockout)
+- One-shop cart with a replace-bag confirmation (`lib/store/use-cart.ts`)
 - Canonical Postgres + PostGIS schema at `supabase/migrations/20260920_initial_marketplace_schema.sql`
 
 ## Stack

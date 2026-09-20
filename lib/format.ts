@@ -21,3 +21,19 @@ export function formatWhatsAppLink(phone: string, message: string): string {
 export function formatTelLink(phone: string): string {
   return `tel:${phone.replace(/\s/g, "")}`;
 }
+
+export function googleMapsNavigateUrl(input: {
+  fulfillmentType: "pickup" | "self_delivery";
+  deliveryAddress: string | null;
+  latitude: number;
+  longitude: number;
+  address: string;
+}): string {
+  const destination =
+    input.fulfillmentType === "self_delivery" && input.deliveryAddress
+      ? input.deliveryAddress
+      : input.latitude && input.longitude
+        ? `${input.latitude},${input.longitude}`
+        : input.address;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+}

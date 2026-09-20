@@ -2,6 +2,13 @@ export type BusinessType = "retail" | "service";
 
 export type FulfillmentType = "pickup" | "self_delivery";
 
+export type OrderStatus =
+  | "placed"
+  | "accepted"
+  | "ready"
+  | "completed"
+  | "cancelled";
+
 export type Store = {
   id: string;
   ownerId: string;
@@ -55,15 +62,29 @@ export type CartItem = {
   quantity: number;
 };
 
-export type PlacedOrder = {
+export type PendingCartItem = Omit<CartItem, "quantity"> & {
+  storeName: string;
+};
+
+export type OrderRecord = {
   id: string;
+  customerId: string;
   storeId: string;
   storeName: string;
+  storeAddress: string;
+  storeLatitude: number;
+  storeLongitude: number;
   totalAmount: number;
   fulfillmentType: FulfillmentType;
   deliveryAddress: string | null;
   verificationPin: string;
-  status: "placed";
+  failedPinAttempts: number;
+  lockedUntil: string | null;
+  status: OrderStatus;
   items: CartItem[];
   createdAt: string;
 };
+
+export type ActionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
