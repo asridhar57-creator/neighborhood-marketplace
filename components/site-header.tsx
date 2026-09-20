@@ -6,11 +6,13 @@ import { ShoppingBag, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useHasHydrated } from "@/hooks/use-has-hydrated";
 import { selectBagCount, useCart } from "@/lib/store/use-cart";
+import { useSellerUi } from "@/lib/store/use-seller-ui";
 
 export function SiteHeader({ neighborhood }: { neighborhood: string }) {
   const hydrated = useHasHydrated();
   const items = useCart((state) => state.items);
   const count = hydrated ? selectBagCount(items) : 0;
+  const openSeller = useSellerUi((state) => state.openSeller);
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-stone-50/90 backdrop-blur-md">
@@ -27,8 +29,17 @@ export function SiteHeader({ neighborhood }: { neighborhood: string }) {
         <Button
           variant="ghost"
           size="lg"
+          className="h-10 px-2"
+          onClick={() => openSeller()}
+        >
+          <span className="hidden sm:inline">Become a seller</span>
+          <span className="sm:hidden">Sell</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="lg"
           nativeButton={false}
-          render={<Link href="/merchant/dashboard" />}
+          render={<Link href="/counter" />}
           className="h-10 px-2"
         >
           <Store className="size-4" />

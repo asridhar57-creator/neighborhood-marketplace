@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MapPinned } from "lucide-react";
 
 import { getOrderPageData } from "@/app/actions/orders";
+import { RememberActiveOrder } from "@/components/remember-active-order";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { formatInr, googleMapsNavigateUrl } from "@/lib/format";
@@ -41,6 +42,17 @@ export default async function OrderPage({ params }: OrderPageProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      {order.status !== "completed" && order.status !== "cancelled" ? (
+        <RememberActiveOrder
+          order_id={order.id}
+          verification_pin={order.verificationPin}
+          store_name={order.storeName}
+          total_amount={order.totalAmount}
+          status={order.status}
+          whatsapp_number={order.storeWhatsapp}
+          fulfillment_type={order.fulfillmentType}
+        />
+      ) : null}
       <div>
         <p className="text-sm text-muted-foreground">Handover at {order.storeName}</p>
         <h1 className="text-2xl font-semibold tracking-tight">

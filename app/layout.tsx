@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { cookies, headers } from "next/headers";
 
 import { CartReplaceModal } from "@/components/cart-replace-modal";
+import { ClientOverlays } from "@/components/client-overlays";
 import { PwaRegister } from "@/components/pwa-register";
 import { SiteHeader } from "@/components/site-header";
 import { DEFAULT_NEIGHBORHOOD } from "@/lib/mock-data";
@@ -71,6 +72,7 @@ export default async function RootLayout({
           </footer>
         </div>
         <CartReplaceModal />
+        <ClientOverlays />
         <PwaRegister />
       </body>
     </html>

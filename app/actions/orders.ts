@@ -133,6 +133,8 @@ function parseHandover(value: unknown): OrderRecord | null {
       typeof record.longitude === "number"
         ? record.longitude
         : Number(record.longitude) || 0,
+    storeWhatsapp:
+      typeof record.whatsapp_number === "string" ? record.whatsapp_number : null,
     totalAmount:
       typeof record.total_amount === "number"
         ? record.total_amount
@@ -173,7 +175,15 @@ export async function placeOrder(input: {
   fulfillmentType: FulfillmentType;
   deliveryAddress: string | null;
   items: CartItem[];
-}): Promise<ActionResult<{ orderId: string }>> {
+}): Promise<
+  ActionResult<{
+    orderId: string;
+    verificationPin: string;
+    storeName: string;
+    totalAmount: number;
+    status: "placed";
+  }>
+> {
   if (input.items.length === 0) {
     return { ok: false, error: "Your bag is empty." };
   }
@@ -228,8 +238,18 @@ export async function placeOrder(input: {
         return { ok: false, error: "Could not place the order." };
       }
       revalidatePath("/merchant/dashboard");
+      revalidatePath("/counter");
       revalidatePath(`/orders/${placed.orderId}`);
-      return { ok: true, data: { orderId: placed.orderId } };
+      return {
+        ok: true,
+        data: {
+          orderId: placed.orderId,
+          verificationPin: placed.pin,
+          storeName: input.storeName ?? "Shop",
+          totalAmount: total,
+          status: "placed",
+        },
+      };
     }
 
     const pin = String(Math.floor(1000 + Math.random() * 9000));
@@ -281,8 +301,18 @@ export async function placeOrder(input: {
     }
 
     revalidatePath("/merchant/dashboard");
+    revalidatePath("/counter");
     revalidatePath(`/orders/${orderId}`);
-    return { ok: true, data: { orderId } };
+    return {
+      ok: true,
+      data: {
+        orderId,
+        verificationPin: pin,
+        storeName: input.storeName ?? "Shop",
+        totalAmount: total,
+        status: "placed",
+      },
+    };
     }
   }
 
@@ -298,8 +328,18 @@ export async function placeOrder(input: {
     return { ok: false, error: created.error };
   }
   revalidatePath("/merchant/dashboard");
+  revalidatePath("/counter");
   revalidatePath(`/orders/${created.id}`);
-  return { ok: true, data: { orderId: created.id } };
+  return {
+    ok: true,
+    data: {
+      orderId: created.id,
+      verificationPin: created.verificationPin,
+      storeName: created.storeName,
+      totalAmount: created.totalAmount,
+      status: "placed",
+    },
+  };
 }
 
 export async function verifyOrderPin(
@@ -378,6 +418,7 @@ export async function verifyOrderPin(
     }
 
     revalidatePath("/merchant/dashboard");
+    revalidatePath("/counter");
     return { ok: true, data: { completed: true } };
   }
 
@@ -386,6 +427,7 @@ export async function verifyOrderPin(
     return { ok: false, error: result.error ?? "Incorrect PIN." };
   }
   revalidatePath("/merchant/dashboard");
+  revalidatePath("/counter");
   return { ok: true, data: { completed: true } };
 }
 
@@ -428,7 +470,7 @@ export async function getOrderPageData(
 
   const { data: rawShop } = await supabase
     .from("stores")
-    .select("id, name, address, location")
+    .select("id, name, address, location, whatsapp_number")
     .eq("id", order.store_id)
     .maybeSingle();
 
@@ -455,6 +497,7 @@ export async function getOrderPageData(
     storeAddress: shop?.address ?? "",
     storeLatitude: coords.latitude,
     storeLongitude: coords.longitude,
+    storeWhatsapp: shop?.whatsapp_number ?? null,
     totalAmount: Number(order.total_amount),
     fulfillmentType: order.fulfillment_type,
     deliveryAddress: order.delivery_address,
@@ -542,6 +585,7 @@ export async function getMerchantDashboardOrders(): Promise<{
         storeAddress: shop?.address ?? "",
         storeLatitude: meta?.latitude ?? 0,
         storeLongitude: meta?.longitude ?? 0,
+        storeWhatsapp: null,
         totalAmount: Number(order.total_amount),
         fulfillmentType: order.fulfillment_type,
         deliveryAddress: order.delivery_address,

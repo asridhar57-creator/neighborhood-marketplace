@@ -26,6 +26,7 @@ export type StoreRow = {
   address: string;
   owner_id?: string;
   location?: unknown;
+  whatsapp_number?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -112,6 +113,7 @@ export function parseStoreRow(value: unknown): StoreRow | null {
     address,
     owner_id: asString(value.owner_id) ?? undefined,
     location: value.location,
+    whatsapp_number: asString(value.whatsapp_number) ?? undefined,
   };
 }
 

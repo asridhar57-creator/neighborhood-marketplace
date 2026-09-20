@@ -96,7 +96,7 @@ export default async function StorePage({ params }: StorePageProps) {
       ) : (
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-medium tracking-wide text-stone-500 uppercase">
-            {products.length} of 15 curated items
+            Featured Items
           </h2>
           {products.map((product) => (
             <ProductCard key={product.id} store={store} product={product} />

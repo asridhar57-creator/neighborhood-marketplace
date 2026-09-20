@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatInr } from "@/lib/format";
+import { useActiveOrder } from "@/lib/store/use-active-order";
 import { selectBagTotal, useCart } from "@/lib/store/use-cart";
 import type { FulfillmentType, Store } from "@/lib/types";
 
@@ -21,6 +22,7 @@ export function BagCheckout({ store }: { store: Store | null }) {
   const storeName = useCart((state) => state.storeName);
   const setQuantity = useCart((state) => state.setQuantity);
   const clearBag = useCart((state) => state.clearBag);
+  const saveOrder = useActiveOrder((state) => state.saveOrder);
   const [fulfillment, setFulfillment] = useState<FulfillmentType>("pickup");
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -177,6 +179,16 @@ export function BagCheckout({ store }: { store: Store | null }) {
                 setError(result.error);
                 return;
               }
+              await Promise.resolve(useActiveOrder.persist.rehydrate());
+              saveOrder({
+                order_id: result.data.orderId,
+                verification_pin: result.data.verificationPin,
+                store_name: result.data.storeName,
+                total_amount: result.data.totalAmount,
+                status: result.data.status,
+                whatsapp_number: store?.whatsappNumber ?? null,
+                fulfillment_type: fulfillment,
+              });
               clearBag();
               router.push(`/orders/${result.data.orderId}`);
             })();

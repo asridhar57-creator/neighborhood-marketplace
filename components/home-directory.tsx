@@ -14,20 +14,33 @@ type HomeDirectoryProps = {
   services: NeighborhoodListing[];
 };
 
+const CHIPS = [
+  "All",
+  "Groceries",
+  "Sweets & Bakery",
+  "Pharmacy",
+  "Electrician & Repairs",
+  "Plumbing",
+] as const;
+
+type Chip = (typeof CHIPS)[number];
+
 export function HomeDirectory({ shops, services }: HomeDirectoryProps) {
   const [query, setQuery] = useState("");
+  const [chip, setChip] = useState<Chip>("All");
+  const [tab, setTab] = useState("retail");
 
   const filteredShops = useMemo(
-    () => filterListings(shops, query),
-    [shops, query],
+    () => filterListings(shops, query, chip),
+    [shops, query, chip],
   );
   const filteredServices = useMemo(
-    () => filterListings(services, query),
-    [services, query],
+    () => filterListings(services, query, chip),
+    [services, query, chip],
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div id="listings" className="flex scroll-mt-28 flex-col gap-4">
       <label className="relative block">
         <span className="sr-only">Search shops and services</span>
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-400" />
@@ -39,7 +52,44 @@ export function HomeDirectory({ shops, services }: HomeDirectoryProps) {
         />
       </label>
 
-      <Tabs defaultValue="retail" className="gap-4">
+      <div className="sticky top-[57px] z-30 -mx-4 border-b border-stone-200/80 bg-stone-50/95 px-4 py-2 backdrop-blur-md">
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {CHIPS.map((row) => {
+            const selected = chip === row;
+            return (
+              <button
+                key={row}
+                type="button"
+                onClick={() => {
+                  setChip(row);
+                  if (row === "Electrician & Repairs" || row === "Plumbing") {
+                    setTab("service");
+                  } else if (row !== "All") {
+                    setTab("retail");
+                  }
+                }}
+                className={
+                  selected
+                    ? "shrink-0 rounded-full bg-stone-900 px-3 py-1.5 text-sm font-medium text-stone-50"
+                    : "shrink-0 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700"
+                }
+              >
+                {row}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          if (typeof value === "string") {
+            setTab(value);
+          }
+        }}
+        className="gap-4"
+      >
         <TabsList className="grid h-11 w-full grid-cols-2">
           <TabsTrigger value="retail" className="gap-1.5">
             <Store className="size-4" />
@@ -69,6 +119,7 @@ export function HomeDirectory({ shops, services }: HomeDirectoryProps) {
                     key={product.id}
                     store={listing.store}
                     product={product}
+                    distanceMeters={listing.distanceMeters}
                   />
                 ))}
               </div>
@@ -96,15 +147,44 @@ export function HomeDirectory({ shops, services }: HomeDirectoryProps) {
   );
 }
 
+function chipMatches(listing: NeighborhoodListing, chip: Chip): boolean {
+  if (chip === "All") {
+    return true;
+  }
+  const haystack = `${listing.store.category} ${listing.store.name} ${listing.searchText} ${listing.store.serviceTags.join(" ")}`.toLowerCase();
+  if (chip === "Groceries") {
+    return /kirana|groc|dairy|vegetable|atta|milk|egg/.test(haystack);
+  }
+  if (chip === "Sweets & Bakery") {
+    return /sweet|bakery|mithai|cake/.test(haystack);
+  }
+  if (chip === "Pharmacy") {
+    return /pharm|chemist|medical/.test(haystack);
+  }
+  if (chip === "Electrician & Repairs") {
+    return /electric|repair|wiring|fan/.test(haystack);
+  }
+  if (chip === "Plumbing") {
+    return /plumb|tap|leak|pipe/.test(haystack);
+  }
+  return true;
+}
+
 function filterListings(
   listings: NeighborhoodListing[],
   query: string,
+  chip: Chip,
 ): NeighborhoodListing[] {
   const term = query.trim().toLowerCase();
-  if (!term) {
-    return listings;
-  }
-  return listings.filter((listing) => listing.searchText.includes(term));
+  return listings.filter((listing) => {
+    if (!chipMatches(listing, chip)) {
+      return false;
+    }
+    if (!term) {
+      return true;
+    }
+    return listing.searchText.includes(term);
+  });
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {

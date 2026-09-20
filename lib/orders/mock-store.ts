@@ -50,6 +50,7 @@ export function createMockOrder(input: {
     storeAddress: shop?.address ?? input.storeAddress ?? "",
     storeLatitude: shop?.latitude ?? input.storeLatitude ?? 0,
     storeLongitude: shop?.longitude ?? input.storeLongitude ?? 0,
+    storeWhatsapp: shop?.whatsappNumber ?? null,
     totalAmount: input.items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,

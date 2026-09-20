@@ -75,6 +75,7 @@ export type OrderRecord = {
   storeAddress: string;
   storeLatitude: number;
   storeLongitude: number;
+  storeWhatsapp: string | null;
   totalAmount: number;
   fulfillmentType: FulfillmentType;
   deliveryAddress: string | null;

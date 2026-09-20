@@ -21,7 +21,7 @@ export function AddToBagButton({
 
   if (!store.isTakingOrders) {
     return (
-      <Button size="lg" disabled className="h-10">
+      <Button size="lg" disabled className="h-10 bg-stone-300 text-stone-600">
         Counter closed
       </Button>
     );
@@ -38,7 +38,7 @@ export function AddToBagButton({
   return (
     <Button
       size="lg"
-      className="h-10 gap-1.5"
+      className="h-10 gap-1.5 bg-stone-900 text-stone-50 hover:bg-stone-800"
       onClick={() => {
         addItem({
           productId: product.id,
@@ -50,7 +50,7 @@ export function AddToBagButton({
       }}
     >
       <ShoppingBag className="size-4" />
-      Add to bag
+      Add
     </Button>
   );
 }
