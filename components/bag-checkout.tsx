@@ -167,6 +167,7 @@ export function BagCheckout({ store }: { store: Store | null }) {
             void (async () => {
               const result = await placeOrder({
                 storeId,
+                storeName: storeName ?? store?.name ?? undefined,
                 fulfillmentType: fulfillment,
                 deliveryAddress:
                   fulfillment === "self_delivery" ? address.trim() : null,

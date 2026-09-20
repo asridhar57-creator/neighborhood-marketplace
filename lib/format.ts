@@ -19,6 +19,13 @@ export function formatWhatsAppLink(phone: string, message: string): string {
 }
 
 export function formatTelLink(phone: string): string {
+  const digits = phone.replace(/[^\d]/g, "");
+  if (digits.length === 10) {
+    return `tel:+91${digits}`;
+  }
+  if (digits.startsWith("91")) {
+    return `tel:+${digits}`;
+  }
   return `tel:${phone.replace(/\s/g, "")}`;
 }
 

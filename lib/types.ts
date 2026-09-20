@@ -52,6 +52,7 @@ export type NeighborhoodListing = {
   matchedProductTitle: string | null;
   matchedProductPrice: number | null;
   searchText: string;
+  products: Product[];
 };
 
 export type CartItem = {

@@ -2,10 +2,10 @@ import type { Product, Store } from "@/lib/types";
 
 /** Ashoka Nagar park — used when the browser has no location cookie. */
 export const DEFAULT_NEIGHBORHOOD = {
-  name: "Ashoka Nagar",
-  city: "Bengaluru",
-  latitude: 12.9884,
-  longitude: 77.5946,
+  name: "Madhapur",
+  city: "Hyderabad",
+  latitude: 17.4486,
+  longitude: 78.3908,
 } as const;
 
 export const MOCK_STORES: Store[] = [

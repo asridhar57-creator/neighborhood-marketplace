@@ -5,6 +5,8 @@ import { searchNeighborhood } from "@/lib/catalog";
 import { DEFAULT_NEIGHBORHOOD } from "@/lib/mock-data";
 import { isUsingMockCatalog } from "@/lib/supabase/env";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const cookieStore = await cookies();
   const latitude = Number(

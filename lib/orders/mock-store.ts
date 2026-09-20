@@ -20,16 +20,20 @@ function fourDigitPin(): string {
 export function createMockOrder(input: {
   customerId: string;
   storeId: string;
+  storeName?: string;
+  storeAddress?: string;
+  storeLatitude?: number;
+  storeLongitude?: number;
   fulfillmentType: FulfillmentType;
   deliveryAddress: string | null;
   items: CartItem[];
 }): OrderRecord | { error: string } {
   const shop = MOCK_STORES.find((row) => row.id === input.storeId);
-  if (!shop) {
-    return { error: "That shop is not on this street." };
-  }
-  if (shop.businessType !== "retail") {
+  if (shop?.businessType === "service") {
     return { error: "Service profiles do not take a bag." };
+  }
+  if (!shop && !input.storeName) {
+    return { error: "That shop is not on this street." };
   }
   if (input.items.length === 0) {
     return { error: "Your bag is empty." };
@@ -41,11 +45,11 @@ export function createMockOrder(input: {
   const order: OrderRecord = {
     id: crypto.randomUUID(),
     customerId: input.customerId,
-    storeId: shop.id,
-    storeName: shop.name,
-    storeAddress: shop.address,
-    storeLatitude: shop.latitude,
-    storeLongitude: shop.longitude,
+    storeId: input.storeId,
+    storeName: shop?.name ?? input.storeName ?? "Shop",
+    storeAddress: shop?.address ?? input.storeAddress ?? "",
+    storeLatitude: shop?.latitude ?? input.storeLatitude ?? 0,
+    storeLongitude: shop?.longitude ?? input.storeLongitude ?? 0,
     totalAmount: input.items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,

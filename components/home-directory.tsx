@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search, Store, Wrench } from "lucide-react";
 
+import { ProductCard } from "@/components/product-card";
 import { StoreCard } from "@/components/store-card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,7 +43,7 @@ export function HomeDirectory({ shops, services }: HomeDirectoryProps) {
         <TabsList className="grid h-11 w-full grid-cols-2">
           <TabsTrigger value="retail" className="gap-1.5">
             <Store className="size-4" />
-            Shops
+            Shops & Products
           </TabsTrigger>
           <TabsTrigger value="service" className="gap-1.5">
             <Wrench className="size-4" />
@@ -61,7 +62,16 @@ export function HomeDirectory({ shops, services }: HomeDirectoryProps) {
             />
           ) : (
             filteredShops.map((listing) => (
-              <StoreCard key={listing.store.id} listing={listing} />
+              <div key={listing.store.id} className="flex flex-col gap-2">
+                <StoreCard listing={listing} />
+                {listing.products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    store={listing.store}
+                    product={product}
+                  />
+                ))}
+              </div>
             ))
           )}
         </TabsContent>

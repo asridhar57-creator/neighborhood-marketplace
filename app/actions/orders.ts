@@ -29,6 +29,25 @@ type PinRpc = {
   error?: string;
 };
 
+function isMissingRpc(error: { code?: string; message?: string } | null): boolean {
+  if (!error) {
+    return false;
+  }
+  return error.code === "PGRST202" || (error.message ?? "").includes("Could not find the function");
+}
+
+function parseGuestOrderRpc(value: unknown): { orderId: string; pin: string } | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  const record = value as { success?: unknown; order_id?: unknown; verification_pin?: unknown; error?: unknown };
+  if (record.success !== true) {
+    return null;
+  }
+  const orderId = typeof record.order_id === "string" ? record.order_id : null;
+  const pin = typeof record.verification_pin === "string" ? record.verification_pin : "";
+  return orderId ? { orderId, pin } : null;
+}
 function isPinRpc(value: unknown): value is PinRpc {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -41,6 +60,100 @@ function isPinRpc(value: unknown): value is PinRpc {
     typeof record.success === "boolean" &&
     (record.error === undefined || typeof record.error === "string")
   );
+}
+
+function parseHandover(value: unknown): OrderRecord | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = typeof record.id === "string" ? record.id : null;
+  const customerId =
+    typeof record.customer_id === "string" ? record.customer_id : "";
+  const storeId = typeof record.store_id === "string" ? record.store_id : null;
+  const storeName =
+    typeof record.store_name === "string" ? record.store_name : "Shop";
+  const storeAddress =
+    typeof record.store_address === "string" ? record.store_address : "";
+  const pin =
+    typeof record.verification_pin === "string" ? record.verification_pin : "";
+  const fulfillment = record.fulfillment_type;
+  const status = record.status;
+  if (
+    !id ||
+    !storeId ||
+    !pin ||
+    (fulfillment !== "pickup" && fulfillment !== "self_delivery") ||
+    (status !== "placed" &&
+      status !== "accepted" &&
+      status !== "ready" &&
+      status !== "completed" &&
+      status !== "cancelled")
+  ) {
+    return null;
+  }
+  const itemsRaw = record.items;
+  const items: CartItem[] = Array.isArray(itemsRaw)
+    ? itemsRaw.flatMap((row) => {
+        if (typeof row !== "object" || row === null) {
+          return [];
+        }
+        const item = row as Record<string, unknown>;
+        const productId =
+          typeof item.product_id === "string" ? item.product_id : null;
+        const quantity =
+          typeof item.quantity === "number" ? item.quantity : Number(item.quantity);
+        const unitPrice =
+          typeof item.unit_price === "number"
+            ? item.unit_price
+            : Number(item.unit_price);
+        if (!productId || !Number.isFinite(quantity) || !Number.isFinite(unitPrice)) {
+          return [];
+        }
+        return [
+          {
+            productId,
+            storeId,
+            title: typeof item.title === "string" ? item.title : "Item",
+            unitPrice,
+            quantity,
+          },
+        ];
+      })
+    : [];
+  return {
+    id,
+    customerId,
+    storeId,
+    storeName,
+    storeAddress,
+    storeLatitude:
+      typeof record.latitude === "number" ? record.latitude : Number(record.latitude) || 0,
+    storeLongitude:
+      typeof record.longitude === "number"
+        ? record.longitude
+        : Number(record.longitude) || 0,
+    totalAmount:
+      typeof record.total_amount === "number"
+        ? record.total_amount
+        : Number(record.total_amount) || 0,
+    fulfillmentType: fulfillment,
+    deliveryAddress:
+      typeof record.delivery_address === "string" ? record.delivery_address : null,
+    verificationPin: pin,
+    failedPinAttempts:
+      typeof record.failed_pin_attempts === "number"
+        ? record.failed_pin_attempts
+        : Number(record.failed_pin_attempts) || 0,
+    lockedUntil:
+      typeof record.locked_until === "string" ? record.locked_until : null,
+    status,
+    items,
+    createdAt:
+      typeof record.created_at === "string"
+        ? record.created_at
+        : new Date().toISOString(),
+  };
 }
 
 async function guestCustomerId(): Promise<string> {
@@ -56,6 +169,7 @@ async function guestCustomerId(): Promise<string> {
 
 export async function placeOrder(input: {
   storeId: string;
+  storeName?: string;
   fulfillmentType: FulfillmentType;
   deliveryAddress: string | null;
   items: CartItem[];
@@ -80,13 +194,49 @@ export async function placeOrder(input: {
 
   const supabase = await createClient();
   if (supabase) {
+    const { data: guestRpc, error: guestError } = await supabase.rpc(
+      "place_neighborhood_order",
+      {
+        p_store_id: input.storeId,
+        p_fulfillment_type: input.fulfillmentType,
+        p_delivery_address: input.deliveryAddress,
+        p_items: input.items.map((item) => ({
+          product_id: item.productId,
+          title: item.title,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+        })),
+      },
+    );
+
+    if (!isMissingRpc(guestError)) {
+      if (guestError) {
+        return { ok: false, error: guestError.message };
+      }
+      if (
+        typeof guestRpc === "object" &&
+        guestRpc !== null &&
+        "success" in guestRpc &&
+        guestRpc.success === false &&
+        "error" in guestRpc &&
+        typeof guestRpc.error === "string"
+      ) {
+        return { ok: false, error: guestRpc.error };
+      }
+      const placed = parseGuestOrderRpc(guestRpc);
+      if (!placed) {
+        return { ok: false, error: "Could not place the order." };
+      }
+      revalidatePath("/merchant/dashboard");
+      revalidatePath(`/orders/${placed.orderId}`);
+      return { ok: true, data: { orderId: placed.orderId } };
+    }
+
     const pin = String(Math.floor(1000 + Math.random() * 9000));
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
-      return { ok: false, error: "Sign in to place an order with this shop." };
-    }
+    if (user) {
 
     const { data: inserted, error: orderError } = await supabase
       .from("orders")
@@ -133,11 +283,13 @@ export async function placeOrder(input: {
     revalidatePath("/merchant/dashboard");
     revalidatePath(`/orders/${orderId}`);
     return { ok: true, data: { orderId } };
+    }
   }
 
   const created = createMockOrder({
     customerId: await guestCustomerId(),
     storeId: input.storeId,
+    storeName: input.storeName,
     fulfillmentType: input.fulfillmentType,
     deliveryAddress: input.deliveryAddress,
     items: input.items,
@@ -248,6 +400,17 @@ export async function getOrderPageData(
   const supabase = await createClient();
   if (!supabase) {
     return null;
+  }
+
+  const { data: handover, error: handoverError } = await supabase.rpc(
+    "get_order_handover",
+    { p_order_id: orderId },
+  );
+  if (!handoverError && handover) {
+    const parsed = parseHandover(handover);
+    if (parsed) {
+      return parsed;
+    }
   }
 
   const { data: rawOrder } = await supabase
